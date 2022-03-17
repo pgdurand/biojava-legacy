@@ -83,19 +83,22 @@ class SwissprotFeatureTableParser
         {
                 boolean newFeature = false;
                 // Check if there is a location section.
-                if(line.charAt(5) != ' ')
+                if(line.charAt(0) == '@')
                 {
+                        //Starting with Uniprot release 2019_12, FT format as changed
+                        // see https://www.uniprot.org/news/2019/12/18/release#text%5Fft
+                        line = line.substring(1).trim();
+                        //Isoform location type?
+                        int idx = line.indexOf(":");
+                        String isoformId="";
+                        if (idx!=-1) {
+                          //provide that information as feature description
+                          isoformId = "/IsoformId=\""+line.substring(0, idx)+"\"";
+                        }
+                        line = line.replaceAll("\\.", " ");
                         StringTokenizer tokens = new StringTokenizer(line);
                         featureTemplate.location = getLocation(tokens);
-
-                        if(line.length() >= 20)
-                        {
-                                line = line.substring(20);
-                        }
-                        else
-                        {
-                                line = "";
-                        }
+                        line = isoformId;
                         newFeature = true;
                 }
 
@@ -142,8 +145,17 @@ class SwissprotFeatureTableParser
         private Location getLocation(StringTokenizer theTokens)
                 throws BioException
         {
+                //Starting with Uniprot release 2019_12, endIndex may be missing
+                //for PointLLocation
+                // see https://www.uniprot.org/news/2019/12/18/release#text%5Fft
                 Index startIndex = this.getIndex(theTokens);
-                Index endIndex = this.getIndex(theTokens);
+                Index endIndex = null;
+                if (theTokens.hasMoreTokens()) {
+                  endIndex = this.getIndex(theTokens);
+                }
+                else {
+                  endIndex = startIndex;
+                }
 
                 Location theLocation;
                 if(startIndex.isFuzzy() || endIndex.isFuzzy())
@@ -235,9 +247,17 @@ class SwissprotFeatureTableParser
                 else
                 {
                         // Plain vanilla location
+                        // check cross-entry location, e.g. P68251-2:1
+                        int idx = returnIndex.indexOf(':');
+                        if (idx!=-1) {
+                          returnIndex = returnIndex.substring(idx+1);
+                          isFuzzy = true;
+                        }
+                        else {
+                          isFuzzy = false;
+                        }
                         minValue = Integer.parseInt(returnIndex);
                         maxValue = minValue;
-                        isFuzzy = false;
                 }
 
                 return(new Index(minValue, maxValue, isFuzzy));

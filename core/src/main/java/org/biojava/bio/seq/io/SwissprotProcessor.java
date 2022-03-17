@@ -163,8 +163,11 @@ public class SwissprotProcessor
 						}
 
 			    		features.startFeature(featureLine.substring(0, 8).trim());
+			    		features.featureData("@"+featureLine.substring(9));
 					}
-					features.featureData(featureLine.substring(9));
+					else {
+					    features.featureData(featureLine.substring(9));
+					}
 				}
 				else
 				{
